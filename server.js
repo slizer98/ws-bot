@@ -38,7 +38,7 @@ app.post("/webhook", async (req, res) => {
         console.log("message:", message)
         if (message) {
             const senderId = value.contacts?.[0]?.wa_id; // ✅ Ahora tomamos el número correcto
-            conosole.log("senderId:", senderId);
+            console.log("senderId:", senderId);
 
             // 📌 Si el usuario presionó el botón "¿Tienes alguna duda?"
             if (message.type === "button" && message.button) {
