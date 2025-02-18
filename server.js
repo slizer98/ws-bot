@@ -35,47 +35,49 @@ app.post("/webhook", async (req, res) => {
     if (body.entry) {
         const value = body.entry[0].changes[0].value;
         const message = value.messages?.[0];
+        let senderId = value.contacts?.[0]?.wa_id; // Número del usuario
 
-        if (message) {
-            let senderId = value.contacts?.[0]?.wa_id; // Número de WhatsApp del usuario
+        // Corregir número si es de México (eliminando "1" extra)
+        if (senderId.startsWith("521")) {
+            senderId = "52" + senderId.slice(3);
+        }
 
-            // 📌 Si el número empieza con "521", lo corregimos a "52"
-            if (senderId.startsWith("521")) {
-                senderId = "52" + senderId.slice(3); // Reemplazamos "521" por "52"
+        // 📌 Si el usuario presionó "¿Tienes alguna duda?" enviamos el menú de opciones
+        if (message.type === "button" && message.button) {
+            const buttonId = message.button.payload;
+
+            if (buttonId === "¿Tienes alguna duda?") {
+                console.log("✅ Enviando menú de preguntas frecuentes...");
+                await enviarMenuFAQ(senderId);
             }
+        }
 
-            console.log("✅ Número corregido:", senderId);
+        // 📌 Si el usuario seleccionó una opción del menú
+        if (message.type === "interactive" && message.interactive.list_reply) {
+            const selectedId = message.interactive.list_reply.id;
 
-            // 📌 Si el usuario presionó el botón "¿Tienes alguna duda?"
-            if (message.type === "button" && message.button) {
-                const buttonId = message.button.payload;
-
-                if (buttonId === "¿Tienes alguna duda?") {
-                    console.log("✅ Enviando menú interactivo a:", senderId);
-                    await enviarMenuInteractivo(senderId);
-                }
-            }
-
-            // 📌 Si el usuario seleccionó una opción del menú
-            if (message.type === "interactive" && message.interactive.list_reply) {
-                const selectedId = message.interactive.list_reply.id;
-
-                if (selectedId === "numeros_contacto") {
-                    await enviarMensajeTexto(senderId, "📞 Nuestros números de contacto:\n- 2222222\n- 43344433");
-                } else if (selectedId === "correos_contacto") {
-                    await enviarMensajeTexto(senderId, "📧 Nuestro correo de contacto:\n- correo@ggg.com");
-                }
+            if (selectedId === "faq_numeros_contacto") {
+                await enviarMensajeTexto(senderId, "📞 Nuestros números de contacto:\n- 2222222\n- 43344433");
+            } else if (selectedId === "faq_correos_contacto") {
+                await enviarMensajeTexto(senderId, "📧 Nuestros correos de contacto:\n- contacto@empresa.com\n- soporte@empresa.com");
+            } else if (selectedId === "faq_horarios") {
+                await enviarMensajeTexto(senderId, "🕒 Nuestro horario de atención es de lunes a viernes de 9:00 AM a 6:00 PM.");
+            } else if (selectedId === "faq_direccion") {
+                await enviarMensajeTexto(senderId, "📍 Nuestra dirección es: Calle Ejemplo 123, Ciudad, País.");
+            } else if (selectedId === "faq_escribir_duda") {
+                await enviarMensajeTexto(senderId, "✍️ Por favor, escribe tu duda y pronto te responderemos.");
+                // Aquí podrías almacenar la duda en una base de datos o integrarla con una IA en el futuro
             }
         }
     }
 
-    res.sendStatus(200); // Respuesta OK a WhatsApp
-});
+    res.sendSta
+
 
 
 
 // 🔹 3. Enviar un mensaje interactivo con el menú
-async function enviarMenuInteractivo(recipient) {
+async function enviarMenuFAQ(recipient) {
     const url = `https://graph.facebook.com/v17.0/${process.env.PHONE_NUMBER_ID}/messages`;
 
     const data = {
@@ -84,22 +86,37 @@ async function enviarMenuInteractivo(recipient) {
         type: "interactive",
         interactive: {
             type: "list",
-            body: { text: "Selecciona una opción:" },
+            body: { text: "📖 Preguntas Frecuentes:\nSelecciona una opción:" },
             action: {
-                button: "Opciones",
+                button: "Ver opciones",
                 sections: [
                     {
-                        title: "Información de contacto",
+                        title: "Información General",
                         rows: [
                             {
-                                id: "numeros_contacto",
+                                id: "faq_numeros_contacto",
                                 title: "📞 Números de contacto",
-                                description: "Consulta los números disponibles"
+                                description: "Consulta nuestros números de atención"
                             },
                             {
-                                id: "correos_contacto",
+                                id: "faq_correos_contacto",
                                 title: "📧 Correos de contacto",
-                                description: "Consulta los correos disponibles"
+                                description: "Consulta nuestros correos electrónicos"
+                            },
+                            {
+                                id: "faq_horarios",
+                                title: "🕒 Horario",
+                                description: "Consulta nuestro horario de atención"
+                            },
+                            {
+                                id: "faq_direccion",
+                                title: "📍 Dirección",
+                                description: "Consulta nuestra ubicación"
+                            },
+                            {
+                                id: "faq_escribir_duda",
+                                title: "✍️ Escribir mi duda",
+                                description: "Déjanos tu duda y la responderemos pronto"
                             }
                         ]
                     }
@@ -108,18 +125,9 @@ async function enviarMenuInteractivo(recipient) {
         }
     };
 
-    try {
-        await axios.post(url, data, {
-            headers: {
-                "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                "Content-Type": "application/json"
-            }
-        });
-        console.log("✅ Menú interactivo enviado correctamente.");
-    } catch (error) {
-        console.error("❌ Error enviando menú:", error.response?.data || error.message);
-    }
+    await enviarMensajeWhatsApp(url, data);
 }
+
 
 // 🔹 4. Enviar un mensaje de texto simple
 async function enviarMensajeTexto(recipient, text) {
