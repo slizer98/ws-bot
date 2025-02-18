@@ -35,17 +35,23 @@ app.post("/webhook", async (req, res) => {
     if (body.entry) {
         const value = body.entry[0].changes[0].value;
         const message = value.messages?.[0];
-        console.log("message:", message)
+
         if (message) {
-            const senderId = value.contacts?.[0]?.wa_id; // ✅ Ahora tomamos el número correcto
-            console.log("senderId:", senderId);
+            let senderId = value.contacts?.[0]?.wa_id; // Número de WhatsApp del usuario
+
+            // 📌 Si el número empieza con "521", lo corregimos a "52"
+            if (senderId.startsWith("521")) {
+                senderId = "52" + senderId.slice(3); // Reemplazamos "521" por "52"
+            }
+
+            console.log("✅ Número corregido:", senderId);
 
             // 📌 Si el usuario presionó el botón "¿Tienes alguna duda?"
             if (message.type === "button" && message.button) {
                 const buttonId = message.button.payload;
 
                 if (buttonId === "¿Tienes alguna duda?") {
-                    console.log("✅ Enviando menú interactivo...");
+                    console.log("✅ Enviando menú interactivo a:", senderId);
                     await enviarMenuInteractivo(senderId);
                 }
             }
@@ -65,6 +71,7 @@ app.post("/webhook", async (req, res) => {
 
     res.sendStatus(200); // Respuesta OK a WhatsApp
 });
+
 
 
 // 🔹 3. Enviar un mensaje interactivo con el menú
