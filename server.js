@@ -32,9 +32,22 @@ app.post("/webhook", async (req, res) => {
 
     console.log("📩 Mensaje recibido:", JSON.stringify(body, null, 2));
 
-    if (body.entry) {
+     if (body.entry) {
         const value = body.entry[0].changes[0].value;
+
+        // 📌 Ignorar eventos de "statuses" (lectura de mensajes)
+        if (value.statuses) {
+            console.log("👀 Evento de lectura ignorado.");
+            return res.sendStatus(200);
+        }
+
+        // 📌 Procesar solo si hay mensajes del usuario
         const message = value.messages?.[0];
+        if (!message) {
+            console.log("⚠️ Evento sin mensaje, ignorado.");
+            return res.sendStatus(200);
+        }
+
         let senderId = value.contacts?.[0]?.wa_id || null;
 
         if (senderId) {
@@ -44,7 +57,7 @@ app.post("/webhook", async (req, res) => {
             }
         } else {
             console.error("❌ No se encontró el número de WhatsApp del usuario.");
-            return res.sendStatus(400); // Respondemos con un error para evitar continuar
+            return res.sendStatus(400);
         }
 
         // 📌 Si el usuario presionó "¿Tienes alguna duda?" enviamos el menú de opciones
