@@ -33,16 +33,17 @@ app.post("/webhook", async (req, res) => {
     console.log("📩 Mensaje recibido:", JSON.stringify(body, null, 2));
 
     if (body.entry) {
-        const message = body.entry[0].changes[0].value.messages?.[0];
+        const value = body.entry[0].changes[0].value;
+        const message = value.messages?.[0];
 
         if (message) {
-            const senderId = message.from; // Número de WhatsApp del usuario
+            const senderId = value.contacts?.[0]?.wa_id; // ✅ Ahora tomamos el número correcto
 
             // 📌 Si el usuario presionó el botón "¿Tienes alguna duda?"
             if (message.type === "button" && message.button) {
-                const buttonId = message.button.payload;  // Aquí obtenemos el ID del botón presionado
+                const buttonId = message.button.payload;
 
-                if (buttonId === "¿Tienes alguna duda?") {  // Asegúrate de que este ID coincide con el que enviaste
+                if (buttonId === "¿Tienes alguna duda?") {
                     console.log("✅ Enviando menú interactivo...");
                     await enviarMenuInteractivo(senderId);
                 }
@@ -63,6 +64,7 @@ app.post("/webhook", async (req, res) => {
 
     res.sendStatus(200); // Respuesta OK a WhatsApp
 });
+
 
 // 🔹 3. Enviar un mensaje interactivo con el menú
 async function enviarMenuInteractivo(recipient) {
