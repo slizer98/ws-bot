@@ -35,11 +35,16 @@ app.post("/webhook", async (req, res) => {
     if (body.entry) {
         const value = body.entry[0].changes[0].value;
         const message = value.messages?.[0];
-        let senderId = value.contacts?.[0]?.wa_id; // Número del usuario
+        let senderId = value.contacts?.[0]?.wa_id || null;
 
-        // Corregir número si es de México (eliminando "1" extra)
-        if (senderId.startsWith("521")) {
-            senderId = "52" + senderId.slice(3);
+        if (senderId) {
+            // 📌 Corregir número si es de México (eliminando "1" extra)
+            if (senderId.startsWith("521")) {
+                senderId = "52" + senderId.slice(3);
+            }
+        } else {
+            console.error("❌ No se encontró el número de WhatsApp del usuario.");
+            return res.sendStatus(400); // Respondemos con un error para evitar continuar
         }
 
         // 📌 Si el usuario presionó "¿Tienes alguna duda?" enviamos el menú de opciones
