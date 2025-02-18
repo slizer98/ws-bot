@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 
 // Token de verificación que debes definir
-const VERIFY_TOKEN = "mi_token_secreto_123";
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 // 🔹 1. Configurar el webhook de WhatsApp (verificación)
 app.get("/webhook", (req, res) => {
