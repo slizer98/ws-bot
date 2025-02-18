@@ -39,17 +39,18 @@ app.post("/webhook", async (req, res) => {
             const senderId = message.from; // Número de WhatsApp del usuario
 
             // 📌 Si el usuario presionó el botón "¿Tienes alguna duda?"
-            if (message.button_reply) {
-                const buttonId = message.button_reply.id;
+            if (message.type === "button" && message.button) {
+                const buttonId = message.button.payload;  // Aquí obtenemos el ID del botón presionado
 
-                if (buttonId === "menu_dudas") {
+                if (buttonId === "¿Tienes alguna duda?") {  // Asegúrate de que este ID coincide con el que enviaste
+                    console.log("✅ Enviando menú interactivo...");
                     await enviarMenuInteractivo(senderId);
                 }
             }
 
             // 📌 Si el usuario seleccionó una opción del menú
-            if (message.list_reply) {
-                const selectedId = message.list_reply.id;
+            if (message.type === "interactive" && message.interactive.list_reply) {
+                const selectedId = message.interactive.list_reply.id;
 
                 if (selectedId === "numeros_contacto") {
                     await enviarMensajeTexto(senderId, "📞 Nuestros números de contacto:\n- 2222222\n- 43344433");
@@ -97,7 +98,17 @@ async function enviarMenuInteractivo(recipient) {
         }
     };
 
-    await enviarMensajeWhatsApp(url, data);
+    try {
+        await axios.post(url, data, {
+            headers: {
+                "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
+                "Content-Type": "application/json"
+            }
+        });
+        console.log("✅ Menú interactivo enviado correctamente.");
+    } catch (error) {
+        console.error("❌ Error enviando menú:", error.response?.data || error.message);
+    }
 }
 
 // 🔹 4. Enviar un mensaje de texto simple
