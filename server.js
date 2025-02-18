@@ -71,7 +71,9 @@ app.post("/webhook", async (req, res) => {
         }
     }
 
-    res.sendSta
+    res.sendStatus(200); // Confirmar recepción del mensaje
+});
+
 
 
 
