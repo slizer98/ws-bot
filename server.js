@@ -35,7 +35,7 @@ app.post("/webhook", async (req, res) => {
     if (body.entry) {
         const value = body.entry[0].changes[0].value;
         const message = value.messages?.[0];
-        conosole.log("message:", message)
+        console.log("message:", message)
         if (message) {
             const senderId = value.contacts?.[0]?.wa_id; // ✅ Ahora tomamos el número correcto
             conosole.log("senderId:", senderId);
